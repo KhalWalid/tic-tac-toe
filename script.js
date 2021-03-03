@@ -4,18 +4,28 @@ const gameBoard = (() => {
     const squareDiv = document.createElement('div');
     squareDiv.id = 'squareDiv';
 
-    const gameBoardArray = ['', '', '', '', '', '', '', '', ''];
+    let gameBoardArray = ['', '', '', '', '', '', '', '', ''];
 
     const changeSquare = (sign, index) => {
-        if (gameBoardArray[index] !== '') return;
+        if (gameBoardArray[index] !== '') return false;
         gameBoardArray[index] = sign;
+        return true
     };
 
+    const getArray = () => {
+        return gameBoardArray;
+    }
+
+    const resetArray = () => {
+        gameBoardArray = ['', '', '', '', '', '', '', '', ''];
+    }
+
     return {
-        gameBoardArray,
+        getArray,
         squareDiv,
         gameBoardContainer,
-        changeSquare
+        changeSquare,
+        resetArray
     };
 
 })();
@@ -24,18 +34,26 @@ const gameController = (() => {
 
     let round = 1;
     let gameOver = false;
+    let winner = undefined
+    const restartButton = document.querySelector('#restart')
 
     const playRound = (index) => {
-        gameBoard.changeSquare(getSign(), index);
-        if (checkGame(index)) {
-            gameOver = true;
-            return;
+        if (gameBoard.changeSquare(getSign(), index)) {
+            if (checkGame(index)) {
+                gameOver = true;
+                winner = getSign()
+                displayController.displayEndMessage(winner)
+                return;
+            };
+            if (round === 9) {
+                gameOver = true;
+                winner = 'Draw'
+                displayController.displayEndMessage(winner)
+                return;
+            }
+            round++
+            displayController.displayCurrentMessage()
         };
-        if (round === 9) {
-            gameOver = true;
-            return;
-        }
-        round++
     };
 
     const getSign = () => {
@@ -56,29 +74,41 @@ const gameController = (() => {
             [2, 5, 8],
             [0, 4, 8],
             [2, 4, 6],
-          ];
-      
+        ];
+
         return winConditions
             .filter((combination) => combination.includes(index))
             .some((possibleCombination) =>
-              possibleCombination.every(
-                (index) => gameBoard.gameBoardArray[index] === getSign()
-            )
-        );
+                possibleCombination.every(
+                    (index) => gameBoard.getArray()[index] === getSign()
+                )
+            );
     };
+
+    restartButton.addEventListener('click', () => {
+        gameBoard.resetArray()
+        round = 1
+        winner = undefined
+        gameOver = false
+        displayController.displayArray()
+        displayController.displayCurrentMessage()
+    });
 
     return {
         isGameOver,
-        playRound
+        playRound,
+        getSign,
     };
 
 })();
 
 const displayController = (() => {
 
+    const currentMessage = document.querySelector('#currentMessage')
+
     const displayArray = () => {
         gameBoard.gameBoardContainer.innerHTML = ''
-        gameBoard.gameBoardArray.forEach(element => {
+        gameBoard.getArray().forEach(element => {
             switch (element) {
                 case 'X':
                     gameBoard.squareDiv.innerHTML = '<p>X</p>';
@@ -104,8 +134,22 @@ const displayController = (() => {
         });
     }
 
+    const displayCurrentMessage = () => {
+        currentMessage.textContent = `Player ${gameController.getSign()}'s turn`
+    }
+
+    const displayEndMessage = (winner) => {
+        if (winner === 'Draw') {
+            currentMessage.textContent = `Draw, play again!`;
+        } else currentMessage.textContent = `Player ${winner} wins`;
+    };
+
     displayArray()
 
-    return {};
+    return {
+        displayEndMessage,
+        displayCurrentMessage,
+        displayArray
+    };
 
 })();
